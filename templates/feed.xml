@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+xmlns:content="http://purl.org/rss/1.0/modules/content/"
+xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+xmlns:dc="http://purl.org/dc/elements/1.1/"
+xmlns:atom="http://www.w3.org/2005/Atom"
+xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+xmlns:rawvoice="http://www.rawvoice.com/rawvoiceRssModule/"
+>
+
+<channel>
+    <title>{{ site.title }}</title>
+    <atom:link href="{{ site.url | safe}}/feed/podcast" rel="self" type="application/rss+xml" />
+    <link>{{ site.url | safe}}</link>
+    <description>{{ site.description }}</description>
+    <lastBuildDate>{{ now() | date(format="%a, %d %b %Y %H:%M:%S %z") }}</lastBuildDate>
+    <language>es-es</language>
+    <sy:updatePeriod>weekly</sy:updatePeriod>
+    <sy:updateFrequency>1</sy:updateFrequency>
+    <generator>https://atareao.es</generator>
+    <itunes:summary>{{ site.description }}</itunes:summary>
+    <itunes:author>{{ site.author }}</itunes:author>
+    <itunes:explicit>{{ site.explicit }}</itunes:explicit>
+    <itunes:image href="{{ site.url | safe }}{{ site.avatar | safe }}" />
+    <itunes:owner>
+    <itunes:name>{{ site.author }}</itunes:name>
+    <itunes:email>{{ site.email }}</itunes:email>
+    </itunes:owner>
+    <managingEditor>{{ site.email }} ({{ site.author }})</managingEditor>
+    <itunes:subtitle>{{ site.description }}</itunes:subtitle>
+    <image>
+    <title>{{ site.title }}</title>
+    <url>{{ site.url | safe }}{{ site.avatar | safe }}</url>
+    <link>{{ site.url | safe }}</link>
+    </image>
+    <itunes:category text="{{ site.category }}">
+    <itunes:category text="{{ site.subcategory }}" />
+    </itunes:category>
+    {% for post in posts -%}
+    <item>
+        <title>{{ post.title }}</title>
+        <link>{{ site.url | safe }}/{{ post.slug }}/</link>
+        <comments>{{ site.url | safe }}/{{ post.slug }}/#comments</comments>
+        <pubDate>{{ post.date | date(format="%a, %d %b %Y %H:%M:%S",timezone="Europe/Madrid")}}</pubDate>
+        {% for category in post.subject %}
+        <category><![CDATA[{{ category | safe }}]]></category>
+        {% endfor -%}
+        <category><![CDATA[{{ site.category | safe }}]]></category>
+        <guid isPermaLink="false">/{{ post.slug }}/</guid>
+        <description>
+            <![CDATA[{{ post.excerpt | truncate(length=50) | safe}}]]>
+        </description>
+        <content:encoded>
+            <![CDATA[{{ post.content | safe }}]]>
+        </content:encoded>
+        <enclosure url="https://archive.org/download/{{post.identifier | safe}}/{{post.filename | safe}}" length="{{ post.size }}" type="audio/mpeg" />
+        <itunes:subtitle><![CDATA[ {{ post.excerpt | safe }} ]]></itunes:subtitle>
+        <itunes:summary><![CDATA[ {{ post.content | safe }} ]]></itunes:summary>
+        <itunes:author>{{ site.author }}</itunes:author>
+        <itunes:image href="{{ site.url | safe }}{{ site.avatar | safe }}" />
+        <itunes:explicit>{{ site.explicit }}</itunes:explicit>
+        <itunes:duration>{{ post.length }}</itunes:duration>
+        <dc:creator>{{ site.email | safe }}({{ site.author | safe }})></dc:creator>
+        <itunes:keywords>{{ post.subject | join(sep=",") }}</itunes:keywords>
+    </item>
+    {% endfor -%}
+</channel>
+</rss>

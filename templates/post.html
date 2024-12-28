@@ -1,0 +1,43 @@
+{% extends "default.html" %}
+{% block title %}{{ post.title }}{% endblock title %}
+{% block content %}
+<article class="post">
+    <h1>{{ post.title }}</h1>
+    <div class="date">
+        <p>Escrito el {{ post.date | date(format="%d/%m/%Y") | safe }}</p>
+        <p>Escrito el {{ post.date | date(format="[day]/[month]/[year]") | safe }}</p>
+    </div>
+    <div class="entry">
+        {{ post.content | safe }}
+        {% if post.layout == "PODCAST" %}
+        <audio controls="">
+            <source src="https://archive.org/download/{{post.identifier | safe}}/{{post.filename | safe}}" type="audio/mpeg" />
+        </audio>
+        {% endif %}
+    </div>
+    <div>
+        <p>Métodos de contacto:</p>
+        <ul>
+            {% if site.twitter %}
+            <li>Twitter: <a href="https://www.twitter.com/{{ site.twitter | safe }}">@{{ site.twitter | safe }}</a></li>
+            {% endif %}
+            {% if site.email %}
+            <li>Correo: <a href="mailto:{{ site.email | safe }}">{{ site.email | safe }}</a></li>
+            {% endif %}
+            {% if site.email %}
+            <li>Web: <a href="{{ site.url | safe }}{% if url %}/{{url | safe }}{% endif %}">{{ site.url | safe }}{% if url %}/{{url | safe}}{% endif %}</a></li>
+            {% endif %}
+            {% if site.youtube %}
+            <li>Youtube: <a href="{{ site.youtube | safe }}">{{ site.youtube | safe}}</a></li>
+            {% endif %}
+            {% if site.linktree %}
+            <li>Linktr.ee: <a href="{{ site.linktree | safe }}">{{ site.linktree | safe}}</a></li>
+            {% endif %}
+            {% if site.rss %}
+            <li>Feed podcast: <a href="{{ site.rss | safe }}">{{ site.rss | safe}}</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% include "disqus.html" %}
+</article>
+{% endblock content %}
