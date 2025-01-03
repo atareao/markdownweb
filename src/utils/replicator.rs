@@ -78,9 +78,10 @@ impl Display for Replicator {
     }
 }
 
-async fn replicate_folder(origin: &str, destination: &str) -> Result<(), Error> {
+async fn replicate_folder(origin: &str, destination: &str) -> Result<(), Box<dyn Error>> {
     println!("Replicating Folder {} to {}", origin, destination);
-    fs::create_dir(destination).await
+    fs::create_dir(destination).await?;
+    Ok(())
 }
 
 async fn replicate_file(origin: &str, destination: &str) {
