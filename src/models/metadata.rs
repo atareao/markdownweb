@@ -1,10 +1,12 @@
 use serde::{Serialize, Deserialize};
 use std::error::Error;
+use chrono::NaiveDate;
+use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
     pub title: String,
-    pub date: String,
+    pub date: NaiveDate,
     pub excerpt: String,
     pub slug: String,
     pub publicated: bool,
@@ -13,11 +15,9 @@ pub struct Metadata {
 
 impl Metadata {
     pub fn validate(&self) -> Result<(), Box<dyn Error>>{
+        debug!("Validating metadata: {:?}", self);
         if self.title.is_empty() {
             return Err("Title is required".into());
-        }
-        if self.date.is_empty() {
-            return Err("Date is required".into());
         }
         if self.excerpt.is_empty() {
             return Err("Excerpt is required".into());
