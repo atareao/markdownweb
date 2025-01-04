@@ -1,26 +1,27 @@
+{% include "vars.html" %}
 <!DOCTYPE html>
 <html>
     <head>
         {% block head %}
-        <title>{% block title %}{% endblock title %} – {{ site.title }}</title>
+        <title>{% block title %}{% endblock title %} – {{ title }}</title>
         {% include "meta.html" %}
-        <link rel="stylesheet" type="text/css" href="{{ url | safe }}/assets/style.css" />
-        <link rel="alternate" type="application/rss+xml" title="{{ site.title }} - {{ site.description }}" href="{{ url | safe }}/feed.xml" />
+        <link rel="stylesheet" type="text/css" href="{{ site_url | safe }}/assets/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="{{ site_title }} - {{ site_description }}" href="{{ site_url | safe }}/feed.xml" />
         {% endblock head %}
     </head>
   <body>
     <div class="wrapper-masthead">
       <div class="container">
         <header class="masthead clearfix">
-          <a href="{{ url | safe }}/" class="site-avatar"><img src="{{ site.avatar | safe }}" /></a>
+          <a href="{{ site_url | safe }}/" class="site-avatar"><img src="{{ avatar | safe }}" /></a>
           <div class="site-info">
-            <h1 class="site-name"><a href="{{ url | safe }}/">{{ site.title }}</a></h1>
-            <p class="site-description">{{ site.description }}</p>
+            <h1 class="site-name"><a href="{{ site_url | safe }}/">{{ title }}</a></h1>
+            <p class="description">{{ description }}</p>
           </div>
           <nav>
-            <a href="{{ url | safe }}/">Blog</a>
+            <a href="{{ site_url | safe }}/">Blog</a>
             {% for page in pages %}
-                <a href="{{ url | safe }}/{{ page.slug }}">{{ page.title }}</a>
+                <a href="{{ site_url | safe }}/{{ slug }}">{{ title }}</a>
             {% endfor %}
           </nav>
         </header>
@@ -36,6 +37,5 @@
         </footer>
       </div>
     </div>
-    {% include "analytics.html" %}
   </body>
 </html>

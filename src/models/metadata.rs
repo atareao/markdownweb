@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use std::error::Error;
 use chrono::NaiveDate;
 use tracing::debug;
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
@@ -9,6 +10,8 @@ pub struct Metadata {
     pub date: NaiveDate,
     pub excerpt: String,
     pub slug: String,
+    pub vars: HashMap<String, String>,
+    pub tags: Vec<String>,
     pub publicated: bool,
     pub template: String,
 }
