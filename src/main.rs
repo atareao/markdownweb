@@ -14,8 +14,6 @@ use std::sync::mpsc;
 use std::str::FromStr;
 use std::env::var;
 use tracing::{debug, error};
-use async_walkdir::WalkDir;
-use futures_lite::stream::StreamExt;
 
 use utils::Replicator;
 
@@ -23,32 +21,30 @@ use utils::Replicator;
 #[tokio::main]
 async fn main(){
 
-    let path: String = var("SOURCE").unwrap_or("/source".to_string());
-    let mut entries = WalkDir::new(path);
-    loop {
-        match entries.next().await {
-            Some(Ok(entry)) => println!("file: {}", entry.path().display()),
-            Some(Err(e)) => {
-                eprintln!("error: {}", e);
-                break;
-            }
-            None => break,
-        }
+    let source = var("SOURCE").unwrap_or("/source".to_string());
+    let destination = var("DESTINATION").unwrap_or("/destination".to_string());
+
+    if !source.starts_with("/") || !destination.starts_with("/"){
+        panic!("SOURCE and DESTINATION must be absolute paths")
     }
-
-    tokio::spawn(async {
-        server().await;
-    });
-    monitor().await;
-}
-
-async fn server(){
-    debug!("Starting server");
     let log_level: String = var("LOG_LEVEL").unwrap_or("debug".to_string());
     tracing_subscriber::registry()
         .with(EnvFilter::from_str(&log_level).unwrap())
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    let replicator = Replicator::new(&source, &destination);
+    replicator.initial_replication().await;
+
+    debug!("Starting server");
+    tokio::spawn(async {
+        server().await;
+    });
+    monitor(&source, &destination).await;
+}
+
+async fn server(){
+    debug!("Starting server");
     match http::serve().await {
         Ok(()) => debug!("Server started"),
         Err(err) => {
@@ -63,16 +59,9 @@ async fn server(){
     }
 }
 
-async fn monitor(){
-    let source = var("SOURCE").unwrap_or("/source".to_string());
-    let destination = var("DESTINATION").unwrap_or("/destination".to_string());
-
-    if !source.starts_with("/") || !destination.starts_with("/"){
-        panic!("SOURCE and DESTINATION must be absolute paths")
-    }
-
-    let replicator = Replicator::new(source.clone(), destination.clone());
-    replicator.initial_replication().await;
+async fn monitor(source: &str, destination: &str){
+    let replicator = Replicator::new(source, destination);
+    //replicator.initial_replication().await;
     let (tx, rx) = mpsc::channel::<Result<Event>>();
 
     // Use recommended_watcher() to automatically select the best implementation

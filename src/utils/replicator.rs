@@ -1,13 +1,14 @@
 use std::fmt::{self, Display, Formatter};
+use glob::glob;
 use notify::{event::{CreateKind, RemoveKind}, EventKind};
 use tracing::{error, debug};
 use tokio::fs;
 use std::error::Error;
-use std::env::var;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use async_walkdir::WalkDir;
-use async_recursion::async_recursion;
 use futures_lite::stream::StreamExt;
+use minijinja::context;
+use super::super::models::ENV;
 
 use crate::models::Page;
 
@@ -18,10 +19,10 @@ pub struct Replicator {
 }
 
 impl Replicator {
-    pub fn new(origin: String, destination: String) -> Self {
+    pub fn new(origin: &str, destination: &str) -> Self {
         Self {
-            origin,
-            destination,
+            origin: origin.to_string(),
+            destination: destination.to_string(),
         }
     }
 
@@ -29,7 +30,26 @@ impl Replicator {
         path.replace(&self.origin, &self.destination)
     }
 
-    async fn replicate_file(&self, path: &PathBuf) {
+    async fn generate_index(&self, path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut metadata = Vec::new();
+        let pattern = format!("{}/*.md", path.to_str().unwrap());
+        for file in glob(&pattern)?{
+            let source = &file?;
+            metadata.push(Page::get_metadata(source.to_str().unwrap()).await?);
+            self.replicate_file(source).await;
+        }
+        metadata.sort_by(|a, b| b.date.cmp(&a.date));
+        let index = format!("{}/index.html", self.get_absolute_destination(path.to_str().unwrap()));
+        let ctx = context!(
+            files => metadata,
+        );
+        let template = ENV.get_template("index.html")?;
+        let rendered = template.render(&ctx)?;
+        tokio::fs::write(index, rendered).await?;
+        Ok(())
+    }
+
+    async fn replicate_file(&self, path: &Path) {
         if path.extension().unwrap() == "md" {
             let source = path.to_str().unwrap().to_string();
             let destination = self.get_absolute_destination(&source)
@@ -48,49 +68,44 @@ impl Replicator {
                     }
                 },
             }
-        }else{
-            let source = path.to_str().unwrap().to_string();
-            let destination = self.get_absolute_destination(&source);
-            debug!("Copy from {} to {}", source, destination);
-            match tokio::fs::copy(path, &destination).await{
-                Ok(_) => {
-                    debug!("Copied from {} to {}", source, destination);
-                },
-                Err(err) => {
-                    error!("Can not copy from {} to {}. Error: {}", source, destination, err);
-                },
-            }
         }
 
     }
 
-    #[async_recursion]
     async fn replicate_folder(&self, path: &PathBuf) {
+        debug!("Replicate folder: {:?}", path);
         let source = path.to_str().unwrap().to_string();
         let destination = self.get_absolute_destination(&source);
         match fs::create_dir(&destination).await{
             Ok(_) => {
                 debug!("Created directory: {}", &destination);
+                let mut directories = Vec::new();
                 let mut entries = WalkDir::new(path);
                 loop {
                     match entries.next().await {
                         Some(Ok(entry)) => {
                             if entry.path().is_dir() {
-                                println!("folder: {}", entry.path().display());
-                                self.replicate_folder(&entry.path()).await;
-                            } else if entry.path().is_file(){
-                                println!("file: {}", entry.path().display());
-                                self.replicate_file(&entry.path()).await;
+                                directories.push(entry.path());
                             }
                         },
                         Some(Err(e)) => {
-                            eprintln!("error: {}", e);
+                            error!("error: {}", e);
                             break;
                         }
                         None => break,
                     }
                 }
-
+                for directory in directories{
+                    let destination = self.get_absolute_destination(directory.to_str().unwrap());
+                    match tokio::fs::create_dir_all(&destination).await {
+                        Ok(()) => debug!("Created directory {:?}", &destination),
+                        Err(err) => error!("Can create directory. {:?}. {}", &destination, err),
+                    }
+                    match self.generate_index(&directory).await {
+                        Ok(()) => debug!("Generate index for {:?}", &destination),
+                        Err(err) => error!("Can not generate index for {:?}. {}", &destination, err),
+                    }
+                }
             },
             Err(err) => {
                 error!("Can not create directory: {}. {}", &destination, err);
@@ -99,26 +114,13 @@ impl Replicator {
     }
 
     pub async fn initial_replication(&self) {
-        let path: String = var("SOURCE").unwrap_or("/source".to_string());
-        let mut entries = WalkDir::new(path);
-        loop {
-            match entries.next().await {
-                Some(Ok(entry)) => {
-                    if entry.path().is_dir() {
-                        println!("folder: {}", entry.path().display());
-                        self.replicate_folder(&entry.path()).await;
-                    } else if entry.path().is_file(){
-                        println!("file: {}", entry.path().display());
-                        self.replicate_file(&entry.path()).await;
-                    }
-                },
-                Some(Err(e)) => {
-                    eprintln!("error: {}", e);
-                    break;
-                }
-                None => break,
+        if let Ok(true) = tokio::fs::try_exists(&self.destination).await{
+            match tokio::fs::remove_dir_all(&self.destination).await {
+                Ok(()) => debug!("Delete main folder"),
+                Err(err) => error!("Can not delete main folder: {}", err),
             }
         }
+        self.replicate_folder(&PathBuf::from(&self.origin)).await;
     }
 
 

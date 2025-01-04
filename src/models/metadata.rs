@@ -1,13 +1,13 @@
 use serde::{Serialize, Deserialize};
 use std::error::Error;
-use chrono::NaiveDate;
+use chrono::{DateTime, FixedOffset};
 use tracing::debug;
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
     pub title: String,
-    pub date: NaiveDate,
+    pub date: DateTime<FixedOffset>,
     pub excerpt: String,
     pub slug: String,
     pub vars: HashMap<String, String>,

@@ -15,9 +15,11 @@ use chrono_tz::Tz;
 
 mod metadata;
 mod page;
+mod config;
 
 pub use metadata::Metadata;
 pub use page::Page;
+pub use config::Config;
 
 
 pub static ENV: Lazy<Environment<'static>> = Lazy::new(|| {

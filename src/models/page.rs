@@ -16,6 +16,17 @@ pub struct Page{
 }
 
 impl Page {
+    pub async fn get_metadata(source: &str) -> Result<Metadata, Box<dyn Error>> {
+        let data = tokio::fs::read_to_string(&source).await?;
+        debug!("Data: {}", data);
+        let matter = Matter::<YAML>::new();
+        let result = matter.parse(&data);
+        debug!("Result: {:?}", result);
+        Ok(result
+            .data
+            .ok_or("Can not read metadata")?
+            .deserialize()?)
+    }
     pub async fn generate(source: &str, destination: &str) -> Result<(), Box<dyn Error>> {
         debug!("Generate from {} to {}", source, destination);
         /*

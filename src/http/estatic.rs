@@ -1,28 +1,30 @@
 use axum::{
-    Router,
     body::Body,
-    routing::get_service,
+    extract::{Path, Request, State},
+    routing::get,
     middleware::{
         from_fn,
         Next,
-    },
-    http::Request,
-    response
+    }, response::{self, IntoResponse, Html, Response}, routing::get_service, Router
 };
 use tower_http::services::ServeDir;
 use std::env::var;
-use tracing::debug;
+use tracing::{debug, error};
+use super::super::models::Config;
 
 const CONTENT_DIR: &str = "/public";
 
 pub fn router() -> Router {
     let path = var("DESTINATION").unwrap_or(CONTENT_DIR.to_string());
-    debug!("Serving from: {}", path);
+    let config = Config::new(&path);
+    debug!("Serving from: {}", &path);
     let serve_dir = ServeDir::new(path).append_index_html_on_directories(true);
     let serve_dir = get_service(serve_dir); //.handle_error(handle_error);
     Router::new()
+        .route("/{*tail}", get(get_index))
         .fallback_service(serve_dir)
-        .layer(from_fn(content_type_middleware))
+        //.layer(from_fn(content_type_middleware))
+        .with_state(config)
 }
 
 pub async fn content_type_middleware(request: Request<Body>, next: Next) -> response::Response {
@@ -116,4 +118,23 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> resp
     }
 
     response
+}
+
+async fn get_index(State(config): State<Config>, Path(path): Path<String>) -> Html<String>{
+    debug!("directory: {}", config.directory);
+    let index = format!("{}/{}/index.html", config.directory, path);
+    if let Ok(true) = tokio::fs::try_exists(&index).await {
+        match tokio::fs::read_to_string(index).await{
+            Ok(content) => {
+                debug!("Content: {}", content);
+                Html(content)
+
+            },
+            Err(e) => {
+                Html(e.to_string())
+            },
+        }
+    }else{
+        Html("error".to_string())
+    }
 }
