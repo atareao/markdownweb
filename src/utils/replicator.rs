@@ -33,6 +33,7 @@ impl Replicator {
         let destination_folder = self.get_absolute_destination(&source_folder);
         let len = self.origin.len();
         let route = source_folder[len..].to_string();
+        debug!("Route: {}", route);
         match fs::create_dir(&destination_folder).await{
             Ok(_) => {
                 debug!("Created directory: {}", &destination_folder);
@@ -66,6 +67,11 @@ impl Replicator {
                         Ok(_) => debug!("Generated page: {}", page.metadata.slug),
                         Err(e) => error!("Can not generate page: {}. {}", page.metadata.slug, e),
                     }
+                }
+                if self.origin == path.to_str().unwrap() {
+                    debug!("Hola");
+                }else{
+                    debug!("Adios");
                 }
                 match Index::read(&route, &source_folder, &destination_folder, pages).await{
                     Ok(index) => {
