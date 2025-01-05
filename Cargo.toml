@@ -17,6 +17,7 @@ minijinja = { version = "2.5.0", features = ["loader"] }
 notify = "7.0.0"
 once_cell = "1.20.2"
 serde = { version = "1.0.217", features = ["derive"] }
+slug = "0.1.6"
 tokio = { version = "1.42.0", features = ["full", "time"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["trace", "fs", "normalize-path"] }

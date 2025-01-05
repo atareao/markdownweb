@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use gray_matter::{engine::YAML, Matter};
 use minijinja::context;
-use tracing::{debug, error};
+use tracing::debug;
 use std::error::Error;
 
 use super::{
@@ -11,21 +11,41 @@ use super::{
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Page{
-    metadata: Metadata,
+    pub metadata: Metadata,
     pub content: String,
 }
 
 impl Page {
+    pub async fn read(source: &str) -> Result<Self, Box<dyn Error>> {
+        let data = tokio::fs::read_to_string(&source).await?;
+        debug!("Data: {}", data);
+        let matter = Matter::<YAML>::new();
+        let result = matter.parse(&data);
+        debug!("Result: {:?}", result);
+        let mut metadata: Metadata = result
+            .data
+            .ok_or("Can not read metadata")?
+            .deserialize()?;
+        metadata.init();
+        metadata.validate()?;
+        Ok(Self {
+            metadata,
+            content: result.content,
+        })
+    }
     pub async fn get_metadata(source: &str) -> Result<Metadata, Box<dyn Error>> {
         let data = tokio::fs::read_to_string(&source).await?;
         debug!("Data: {}", data);
         let matter = Matter::<YAML>::new();
         let result = matter.parse(&data);
         debug!("Result: {:?}", result);
-        Ok(result
+        let mut metadata: Metadata = result
             .data
             .ok_or("Can not read metadata")?
-            .deserialize()?)
+            .deserialize()?;
+        metadata.init();
+        metadata.validate()?;
+        Ok(metadata)
     }
     pub async fn generate(source: &str, destination: &str) -> Result<(), Box<dyn Error>> {
         debug!("Generate from {} to {}", source, destination);
@@ -41,18 +61,20 @@ impl Page {
         let matter = Matter::<YAML>::new();
         let result = matter.parse(&data);
         debug!("Result: {:?}", result);
-        let metadata: Metadata = result
+        let mut metadata: Metadata = result
             .data
             .ok_or("Can not read metadata")?
             .deserialize()?;
         debug!("Metadata: {:?}", metadata);
+        metadata.init();
         metadata.validate()?;
         let ctx = context!(
             title => metadata.title,
             date => metadata.date,
             excerpt => metadata.excerpt,
             vars => metadata.vars,
-            tagas => metadata.tags,
+            tags => metadata.tags,
+            content => result.content,
         );
         let template = ENV.get_template(&metadata.template)?;
         let rendered = template.render(&ctx)?;

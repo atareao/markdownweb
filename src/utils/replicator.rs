@@ -50,7 +50,7 @@ impl Replicator {
     }
 
     async fn replicate_file(&self, path: &Path) {
-        if path.extension().unwrap() == "md" {
+        if path.extension().unwrap().to_str().unwrap().ends_with(".md") {
             let source = path.to_str().unwrap().to_string();
             let destination = self.get_absolute_destination(&source)
                 .replace(".md", ".html");
@@ -80,12 +80,20 @@ impl Replicator {
             Ok(_) => {
                 debug!("Created directory: {}", &destination);
                 let mut directories = Vec::new();
+                let mut pages = Vec::new();
                 let mut entries = WalkDir::new(path);
                 loop {
                     match entries.next().await {
                         Some(Ok(entry)) => {
                             if entry.path().is_dir() {
                                 directories.push(entry.path());
+                            }else if entry.path().is_file() && entry.path().ends_with(".md"){
+                                match Page::read(entry.path().to_str().unwrap()).await {
+                                    Ok(page) => pages.push(page),
+                                    Err(e) => {
+                                        error!("Cant read {}. {}", entry.path().to_str().unwrap(), e)
+                                    }
+                                }
                             }
                         },
                         Some(Err(e)) => {
@@ -94,6 +102,11 @@ impl Replicator {
                         }
                         None => break,
                     }
+                }
+                pages.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
+                for page in pages {
+                    page.generate(&destination).await;
+
                 }
                 for directory in directories{
                     let destination = self.get_absolute_destination(directory.to_str().unwrap());
