@@ -16,9 +16,13 @@ use chrono_tz::Tz;
 mod metadata;
 mod page;
 mod config;
+mod index;
+mod pageerror;
 
 pub use metadata::Metadata;
 pub use page::Page;
+pub use pageerror::PageError;
+pub use index::Index;
 pub use config::Config;
 
 

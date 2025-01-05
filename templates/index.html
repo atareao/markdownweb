@@ -1,15 +1,15 @@
 {% extends "default.html" %}
-{% block title %}Index{% endblock title %}
+{% block title %}{{ title }}{% endblock title %}
 {% block content %}
 <div class="posts">
-    {% for post in files %}
+    {% for pages in pages %}
     <article class="post">
-        <h1><a href="{{ url | safe }}/{{ post.slug }}">{{ post.title }}</a></h1>
+        <h1><a href="{{ url | safe }}/{{ page.route }}/{{ page.metadata.slug }}">{{ page.metadata.title }}</a></h1>
         <h5><div class="post-meta">{{ post.date | date(format="%d/%m/%Y") }}</div></h5>
         <div class="entry">
-            {{ post.excerpt | safe}}
+            {{ page.metadata.excerpt | safe}}
         </div>
-        <a href="{{ url | safe }}/{{ post.slug }}" class="read-more">Sigue leyendo...</a>
+        <a href="{{ url | safe }}/{{ page.route }}/{{ page.metadata.slug }}" class="read-more">Sigue leyendo...</a>
     </article>
     {% endfor %}
 </div>

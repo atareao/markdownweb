@@ -1,16 +1,13 @@
 use std::fmt::{self, Display, Formatter};
-use glob::glob;
 use notify::{event::{CreateKind, RemoveKind}, EventKind};
 use tracing::{error, debug};
 use tokio::fs;
 use std::error::Error;
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
-use minijinja::context;
-use super::super::models::ENV;
 
-use crate::models::Page;
+use crate::models::{Page, Index};
 
 #[derive(Debug, Clone)]
 pub struct Replicator {
@@ -30,55 +27,15 @@ impl Replicator {
         path.replace(&self.origin, &self.destination)
     }
 
-    async fn generate_index(&self, path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut metadata = Vec::new();
-        let pattern = format!("{}/*.md", path.to_str().unwrap());
-        for file in glob(&pattern)?{
-            let source = &file?;
-            metadata.push(Page::get_metadata(source.to_str().unwrap()).await?);
-            self.replicate_file(source).await;
-        }
-        metadata.sort_by(|a, b| b.date.cmp(&a.date));
-        let index = format!("{}/index.html", self.get_absolute_destination(path.to_str().unwrap()));
-        let ctx = context!(
-            files => metadata,
-        );
-        let template = ENV.get_template("index.html")?;
-        let rendered = template.render(&ctx)?;
-        tokio::fs::write(index, rendered).await?;
-        Ok(())
-    }
-
-    async fn replicate_file(&self, path: &Path) {
-        if path.extension().unwrap().to_str().unwrap().ends_with(".md") {
-            let source = path.to_str().unwrap().to_string();
-            let destination = self.get_absolute_destination(&source)
-                .replace(".md", ".html");
-            debug!("Going to generate {} from {}", destination, source);
-            match Page::generate(&source, &destination).await {
-                Ok(_) => {
-                    debug!("Generated {} from {}", destination, source);
-                },
-                Err(err) => {
-                    error!("Can not generate {} from {}. Error: {}", destination, source, err);
-                    let mut err = err.as_ref();
-                    while let Some(next_err) = err.source() {
-                        error!("caused by: {:#}", next_err);
-                        err = next_err;
-                    }
-                },
-            }
-        }
-
-    }
-
     async fn replicate_folder(&self, path: &PathBuf) {
         debug!("Replicate folder: {:?}", path);
-        let source = path.to_str().unwrap().to_string();
-        let destination = self.get_absolute_destination(&source);
-        match fs::create_dir(&destination).await{
+        let source_folder = path.to_str().unwrap().to_string();
+        let destination_folder = self.get_absolute_destination(&source_folder);
+        let len = self.origin.len();
+        let route = source_folder[len..].to_string();
+        match fs::create_dir(&destination_folder).await{
             Ok(_) => {
-                debug!("Created directory: {}", &destination);
+                debug!("Created directory: {}", &destination_folder);
                 let mut directories = Vec::new();
                 let mut pages = Vec::new();
                 let mut entries = WalkDir::new(path);
@@ -88,7 +45,7 @@ impl Replicator {
                             if entry.path().is_dir() {
                                 directories.push(entry.path());
                             }else if entry.path().is_file() && entry.path().ends_with(".md"){
-                                match Page::read(entry.path().to_str().unwrap()).await {
+                                match Page::read(&route, entry.path().to_str().unwrap()).await {
                                     Ok(page) => pages.push(page),
                                     Err(e) => {
                                         error!("Cant read {}. {}", entry.path().to_str().unwrap(), e)
@@ -104,24 +61,26 @@ impl Replicator {
                     }
                 }
                 pages.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
-                for page in pages {
-                    page.generate(&destination).await;
-
+                for page in pages.as_slice() {
+                    match page.generate(&destination_folder).await{
+                        Ok(_) => debug!("Generated page: {}", page.metadata.slug),
+                        Err(e) => error!("Can not generate page: {}. {}", page.metadata.slug, e),
+                    }
                 }
-                for directory in directories{
-                    let destination = self.get_absolute_destination(directory.to_str().unwrap());
-                    match tokio::fs::create_dir_all(&destination).await {
-                        Ok(()) => debug!("Created directory {:?}", &destination),
-                        Err(err) => error!("Can create directory. {:?}. {}", &destination, err),
-                    }
-                    match self.generate_index(&directory).await {
-                        Ok(()) => debug!("Generate index for {:?}", &destination),
-                        Err(err) => error!("Can not generate index for {:?}. {}", &destination, err),
-                    }
+                match Index::read(&route, &source_folder, &destination_folder, pages).await{
+                    Ok(index) => {
+                        match index.generate(&destination_folder).await {
+                            Ok(_) => debug!("Generated index for {}", &destination_folder),
+                            Err(err) => error!("Can not generate index for {}. {}", &destination_folder, err),
+                        }
+                    },
+                    Err(err) => {
+                        error!("Can not read index for {}. {}", &destination_folder, err);
+                    },
                 }
             },
             Err(err) => {
-                error!("Can not create directory: {}. {}", &destination, err);
+                error!("Can not create directory: {}. {}", &destination_folder, err);
             },
         }
     }
@@ -143,7 +102,8 @@ impl Replicator {
                 match create {
                     CreateKind::File => {
                         for path in event.paths.iter() {
-                            self.replicate_file(path).await;
+                            //self.replicate_file(path).await;
+                            debug!("Replicating {:?}. From {} to {}", path, self.origin, self.destination);
                         }
                     },
                     CreateKind::Folder => {
