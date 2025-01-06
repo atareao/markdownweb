@@ -58,7 +58,9 @@ async fn server(){
 }
 
 async fn monitor(mutex_config: Arc<Mutex<Config>>){
+    debug!("Starting monitor");
     let config = mutex_config.lock().await;
+    debug!("Config: {:?}", config);
     let replicator = Replicator::new(&mutex_config).await;
     //replicator.initial_replication().await;
     let (tx, rx) = mpsc::channel::<Result<Event>>();
