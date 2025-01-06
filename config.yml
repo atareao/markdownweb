@@ -1,3 +1,4 @@
+assets: /data/rust/markdownweb/assets/
 source: /data/rust/markdownweb/content/
 destination: /data/rust/markdownweb/public/
 site:

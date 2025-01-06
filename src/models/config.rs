@@ -7,6 +7,7 @@ use super::Site;
 pub struct Config{
     pub source: String,
     pub destination: String,
+    pub assets: String,
     pub site: Site,
 }
 

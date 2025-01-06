@@ -4,6 +4,7 @@ use axum::{
     response::Html,
     Router
 };
+use tower_http::services::ServeDir;
 use tracing::debug;
 use super::super::models::Config;
 
@@ -13,6 +14,7 @@ pub async fn router() -> Router {
     
     debug!("Serving from: {}", &path);
     Router::new()
+        .nest_service("/assets", ServeDir::new(&config.assets))
         .route("/{*tail}", get(get_index))
         .with_state(config)
 }
