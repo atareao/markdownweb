@@ -11,13 +11,12 @@ use tower_http::{
 use core::error;
 use std::env::var;
 use tracing::debug;
-
 use tower::{Layer, ServiceBuilder};
 
 pub async fn serve() -> Result<(), Box<dyn error::Error>>{
     let port: u16 = var("PORT").ok().and_then(|port| port.parse().ok()).unwrap_or(8080);
     debug!("Starting server on port: {}", port);
-    let router = estatic::router().layer(
+    let router = estatic::router().await.layer(
         ServiceBuilder::new()
             // Enables logging. Use `RUST_LOG=tower_http=debug`
             .layer(TraceLayer::new_for_http())

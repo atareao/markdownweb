@@ -6,6 +6,9 @@ use std::error::Error;
 use std::path::PathBuf;
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
+use super::super::models::Config;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use crate::models::{Page, Index};
 
@@ -16,10 +19,11 @@ pub struct Replicator {
 }
 
 impl Replicator {
-    pub fn new(origin: &str, destination: &str) -> Self {
+    pub async fn new(mutex_config: &Arc<Mutex<Config>>) -> Self {
+        let config = mutex_config.lock().await;
         Self {
-            origin: origin.to_string(),
-            destination: destination.to_string(),
+            origin: config.source.to_string(),
+            destination: config.destination.to_string(),
         }
     }
 

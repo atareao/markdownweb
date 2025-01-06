@@ -7,40 +7,38 @@ use tracing_subscriber::{
     layer::SubscriberExt,
     util::SubscriberInitExt,
 };
-use core::panic;
 use std::path::Path;
 use notify::{Event, RecursiveMode, Result, Watcher};
 use std::sync::mpsc;
 use std::str::FromStr;
 use std::env::var;
 use tracing::{debug, error};
-
 use utils::Replicator;
+use models::Config;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 
 #[tokio::main]
 async fn main(){
-
-    let source = var("SOURCE").unwrap_or("/source".to_string());
-    let destination = var("DESTINATION").unwrap_or("/destination".to_string());
-
-    if !source.starts_with("/") || !destination.starts_with("/"){
-        panic!("SOURCE and DESTINATION must be absolute paths")
-    }
     let log_level: String = var("LOG_LEVEL").unwrap_or("debug".to_string());
     tracing_subscriber::registry()
         .with(EnvFilter::from_str(&log_level).unwrap())
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let replicator = Replicator::new(&source, &destination);
+    let config = Arc::new(Mutex::new(Config::read_configuration().await));
+
+    let binding = Arc::clone(&config);
+    let replicator = Replicator::new(&binding).await;
     replicator.initial_replication().await;
+
 
     debug!("Starting server");
     tokio::spawn(async {
         server().await;
     });
-    monitor(&source, &destination).await;
+    monitor(Arc::clone(&config)).await;
 }
 
 async fn server(){
@@ -59,8 +57,9 @@ async fn server(){
     }
 }
 
-async fn monitor(source: &str, destination: &str){
-    let replicator = Replicator::new(source, destination);
+async fn monitor(mutex_config: Arc<Mutex<Config>>){
+    let config = mutex_config.lock().await;
+    let replicator = Replicator::new(&mutex_config).await;
     //replicator.initial_replication().await;
     let (tx, rx) = mpsc::channel::<Result<Event>>();
 
@@ -72,8 +71,8 @@ async fn monitor(source: &str, destination: &str){
 
     // Add a path to be watched. All files and directories at that path and
     // below will be monitored for changes.
-    debug!("Watching: {}", source);
-    watcher.watch(Path::new(&source), RecursiveMode::Recursive).unwrap();
+    debug!("Watching: {}", config.source);
+    watcher.watch(Path::new(&config.source), RecursiveMode::Recursive).unwrap();
     // Block forever, printing out events as they come in
     for res in rx {
         match res {
@@ -81,7 +80,7 @@ async fn monitor(source: &str, destination: &str){
                 match replicator.replicate(event).await {
                     Ok(_) => {},
                     Err(err) => {
-                        error!("Can not generate {} from {}. Error: {}", destination, source, err);
+                        error!("Can not generate {} from {}. Error: {}", config.destination, config.source, err);
                         let mut err = err.as_ref();
                         while let Some(next_err) = err.source() {
                             error!("caused by: {:#}", next_err);

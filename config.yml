@@ -1,0 +1,9 @@
+source: /data/rust/markdownweb/content/
+destination: /data/rust/markdownweb/public/
+site:
+  url: https://papafriki.es
+  title: Batallitas del día a día de un Papá Friki
+  description: Batallitas del día a día de un Papá Friki
+  author: Alberto
+  avatar: https://atareao.es/avatar.png
+  email: papafriki@papafriki.es
