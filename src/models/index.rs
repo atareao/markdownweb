@@ -4,6 +4,7 @@ use tracing::{
     error,
     debug
 };
+use std::path::PathBuf;
 use std::collections::HashMap;
 use std::error::Error;
 use minijinja::context;
@@ -11,26 +12,25 @@ use super::{
     ENV,
     Metadata,
     Page,
-    PageError,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Index{
-    pub route: String,
-    pub metadata: Metadata,
-    pub content: String,
+    pub index: Page,
     pub pages: Vec<Page>,
 }
 
 impl Index {
-    pub async fn read(route: &str,source_folder: &str, destination_folder: &str, pages: Vec<Page>) -> Result<Self, Box<dyn Error>> {
-        debug!("Route: {}", route);
-        debug!("Source folder: {}", source_folder);
-        debug!("Destination folder: {}", destination_folder);
-        let source = format!("{}/index.md", source_folder);
-        debug!("Reading index: {}", &source);
+    pub async fn read(route: &PathBuf, source_folder: &PathBuf, destination_folder: &PathBuf, pages: Vec<Page>) -> Result<Self, Box<dyn Error>> {
+        debug!("Route: {:?}", route);
+        debug!("Source folder: {:?}", source_folder);
+        debug!("Destination folder: {:?}", destination_folder);
+        let source = PathBuf::new()
+            .join(source_folder)
+            .join("index.md");
+        debug!("Reading index: {:?}", &source);
         if let Ok(true) = tokio::fs::try_exists(&source).await {
-            debug!("File exists: {}", &source);
+            debug!("File exists: {:?}", &source);
             let data = tokio::fs::read_to_string(&source).await?;
             debug!("Data: {}", data);
             let matter = Matter::<YAML>::new();
@@ -43,18 +43,17 @@ impl Index {
             metadata.init();
             metadata.validate()?;
             Ok(Self {
-                route: route.to_string(),
-                metadata,
-                content: result.content,
+                index: Page {
+                    route: route.to_path_buf(),
+                    metadata,
+                    content: result.content,
+
+                },
                 pages,
             })
         }else{
-            debug!("File does not exist: {}", &source);
-            let slug = if let Some(striped) = destination_folder.strip_suffix("/"){
-                striped.split("/").last().unwrap().to_string()
-            }else{
-                destination_folder.split("/").last().unwrap().to_string()
-            };
+            debug!("File does not exist: {:?}", &source);
+            let slug = destination_folder.file_name().unwrap().to_str().unwrap().to_string();
             let title = slug.replace("-", " ");
             let metadata = Metadata {
                 title: title.clone(),
@@ -68,41 +67,59 @@ impl Index {
             };
             metadata.validate()?;
             Ok(Self {
-                route: route.to_string(),
-                metadata,
-                content: "".to_string(),
+                index: Page {
+                    route: route.to_path_buf(),
+                    metadata,
+                    content: "".to_string(),
+                },
                 pages,
             })
         }
     }
 
-    pub async fn generate(&self, parent: &str) -> Result<(), Box<dyn Error>> {
-        debug!("Parent: {}", parent);
-        debug!("Generate {}/index.html", parent);
-        let destination_folder = parent.to_string();
-        let destination_file = format!("{}/index.html", destination_folder);
-        if let Ok(true) = tokio::fs::try_exists(&destination_folder).await {
-            error!("Folder exists. There are documents with same slug {}", self.metadata.slug);
-            return Err(Box::new(PageError::new("Folder exists. There are documents with same slug")));
+    pub async fn generate(&self, parent: &PathBuf) {
+        debug!("--- Start generation {:?} - {:?}", &parent, &self.index.route);
+        debug!("Parent: {:?}", parent);
+        debug!("Generate {:?}index.html", parent);
+        debug!("Route: {:?}", self.index.route);
+        let destination_file = PathBuf::new()
+            .join(parent)
+            .join("index.html");
+        debug!("Destination: {:?}", self.index.route);
+        match tokio::fs::create_dir_all(&parent).await {
+            Ok(_) => debug!("Created parent directory: {:?}", &parent),
+            Err(e) => error!("Can not create parent directory: {:?}. {}", &parent, e),
         }
         if let Ok(true) = tokio::fs::try_exists(&destination_file).await {
-            debug!("File exists. Overwriting {}", &destination_file);
-            tokio::fs::remove_file(&destination_file).await?;
+            debug!("File exists. Overwriting {:?}", &destination_file);
+            match tokio::fs::remove_file(&destination_file).await {
+                Ok(_) => debug!("Removed file: {:?}", &destination_file),
+                Err(e) => error!("Can not remove file: {:?}. {}", &destination_file, e),
+            }
         }
+        debug!("Pages: {:?}", self.pages);
         let ctx = context!(
-            title => self.metadata.title,
-            date => self.metadata.date,
-            excerpt => self.metadata.excerpt,
-            vars => self.metadata.vars,
-            tags => self.metadata.tags,
-            content => self.content,
+            config => self.config,
+            page => self.index,
             pages => self.pages,
         );
         debug!("Context: {:?}", ctx);
-        let template = ENV.get_template(&self.metadata.template)?;
-        debug!("Template: {:?}", template);
-        let rendered = template.render(&ctx)?;
-        tokio::fs::write(&destination_file, rendered).await?;
-        Ok(())
+        match ENV.get_template(&self.index.metadata.template) {
+            Ok(template) => {
+                debug!("Template: {:?}", template);
+                match template.render(&ctx) {
+                    Ok(rendered) => {
+                        match tokio::fs::write(&destination_file, &rendered).await {
+                            Ok(_) => debug!("Generated index: {:?}", &destination_file),
+                            Err(e) => error!("Can not generate index: {:?}. {}", &destination_file, e),
+                        }
+                    },
+                    Err(e) => error!("Can not render template. {}", e),
+                }
+            },
+            Err(e) => error!("Can not get template. {}", e),
+
+        }
+        debug!("--- End generation {:?} - {:?}", &parent, &self.index.route);
     }
 }

@@ -1,11 +1,10 @@
-{% include "vars.html" %}
 <!DOCTYPE html>
 <html>
     <head>
         {% block head %}
         <title>{% block title %}{% endblock title %} – {{ title }}</title>
         {% include "meta.html" %}
-        <link rel="stylesheet" type="text/css" href="{{ site_url | safe }}/assets/style.css" />
+        <link rel="stylesheet" type="text/css" href="{{ config.site | safe }}/assets/style.css" />
         <link rel="alternate" type="application/rss+xml" title="{{ site_title }} - {{ site_description }}" href="{{ site_url | safe }}/feed.xml" />
         {% endblock head %}
     </head>

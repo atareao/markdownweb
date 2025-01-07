@@ -28,7 +28,8 @@ impl Metadata {
             self.slug = slugify(&self.title);
         }
         if self.excerpt.is_empty() {
-            self.excerpt = self.title[..150].to_string();
+            self.excerpt = self.title.clone();
+            self.excerpt.truncate(150);
         }
     }
     pub fn validate(&self) -> Result<(), Box<dyn Error>>{

@@ -4,8 +4,11 @@ use axum::{
     response::Html,
     Router
 };
+use std::path::PathBuf;
 use tower_http::services::ServeDir;
-use tracing::debug;
+use tracing::{debug, error};
+use crate::models::create_page_error;
+
 use super::super::models::Config;
 
 pub async fn router() -> Router {
@@ -15,25 +18,36 @@ pub async fn router() -> Router {
     debug!("Serving from: {}", &path);
     Router::new()
         .nest_service("/assets", ServeDir::new(&config.assets))
+        .route("/", get(get_root))
         .route("/{*tail}", get(get_index))
         .with_state(config)
 }
 
+async fn get_root(state: State<Config>) -> Html<String>{
+    get_index(state, Path("".to_string())).await
+}
 async fn get_index(State(config): State<Config>, Path(path): Path<String>) -> Html<String>{
-    debug!("directory: {}", config.destination);
-    let index = format!("{}/{}/index.html", config.destination, path);
-    if let Ok(true) = tokio::fs::try_exists(&index).await {
-        match tokio::fs::read_to_string(index).await{
+    debug!("=== directory: {} ===", config.destination);
+    debug!("Destination: {:?}", &config.destination);
+    debug!("Path: {:?}", &path);
+    let index_path = PathBuf::new()
+        .join(&config.destination)
+        .join(&path)
+        .join("index.html");
+    debug!("Index path: {:?}", index_path);
+    if let Ok(true) = tokio::fs::try_exists(&index_path).await {
+        match tokio::fs::read_to_string(&index_path).await{
             Ok(content) => {
                 debug!("Content: {}", content);
                 Html(content)
-
             },
             Err(e) => {
-                Html(e.to_string())
+                error!("Error: {}", e);
+                create_page_error(500, &e.to_string(), &config)
             },
         }
     }else{
-        Html("error".to_string())
+        error!("Error. directory {:?} not exists", &index_path);
+        create_page_error(404, "Page not found", &config)
     }
 }

@@ -1,108 +1,50 @@
 use std::fmt::{self, Display, Formatter};
+use async_recursion::async_recursion;
 use notify::{event::{CreateKind, RemoveKind}, EventKind};
 use tracing::{error, debug};
 use tokio::fs;
 use std::error::Error;
-use std::path::PathBuf;
-use async_walkdir::WalkDir;
-use futures_lite::stream::StreamExt;
+use std::path::{Path, PathBuf};
 use super::super::models::Config;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::models::{Page, Index};
+use super::super::models::{Page, Index};
 
 #[derive(Debug, Clone)]
 pub struct Replicator {
-    pub origin: String,
-    pub destination: String,
+    pub origin: PathBuf,
+    pub destination: PathBuf,
 }
 
 impl Replicator {
     pub async fn new(mutex_config: &Arc<Mutex<Config>>) -> Self {
         let config = mutex_config.lock().await;
         Self {
-            origin: config.source.to_string(),
-            destination: config.destination.to_string(),
+            origin: Path::new(&config.source).to_path_buf(),
+            destination: Path::new(&config.destination).to_path_buf(),
         }
     }
 
-    pub fn get_absolute_destination(&self, path: &str) -> String {
-        path.replace(&self.origin, &self.destination)
-    }
-
-    async fn replicate_folder(&self, path: &PathBuf) {
-        debug!("Replicate folder: {:?}", path);
-        let source_folder = path.to_str().unwrap().to_string();
-        let destination_folder = self.get_absolute_destination(&source_folder);
-        let len = self.origin.len();
-        let route = source_folder[len..].to_string();
-        debug!("Route: {}", route);
-        match fs::create_dir(&destination_folder).await{
-            Ok(_) => {
-                debug!("Created directory: {}", &destination_folder);
-                let mut directories = Vec::new();
-                let mut pages = Vec::new();
-                let mut entries = WalkDir::new(path);
-                loop {
-                    match entries.next().await {
-                        Some(Ok(entry)) => {
-                            if entry.path().is_dir() {
-                                directories.push(entry.path());
-                            }else if entry.path().is_file() && entry.path().ends_with(".md"){
-                                match Page::read(&route, entry.path().to_str().unwrap()).await {
-                                    Ok(page) => pages.push(page),
-                                    Err(e) => {
-                                        error!("Cant read {}. {}", entry.path().to_str().unwrap(), e)
-                                    }
-                                }
-                            }
-                        },
-                        Some(Err(e)) => {
-                            error!("error: {}", e);
-                            break;
-                        }
-                        None => break,
-                    }
-                }
-                pages.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
-                for page in pages.as_slice() {
-                    match page.generate(&destination_folder).await{
-                        Ok(_) => debug!("Generated page: {}", page.metadata.slug),
-                        Err(e) => error!("Can not generate page: {}. {}", page.metadata.slug, e),
-                    }
-                }
-                if self.origin == path.to_str().unwrap() {
-                    debug!("Hola");
-                }else{
-                    debug!("Adios");
-                }
-                match Index::read(&route, &source_folder, &destination_folder, pages).await{
-                    Ok(index) => {
-                        match index.generate(&destination_folder).await {
-                            Ok(_) => debug!("Generated index for {}", &destination_folder),
-                            Err(err) => error!("Can not generate index for {}. {}", &destination_folder, err),
-                        }
-                    },
-                    Err(err) => {
-                        error!("Can not read index for {}. {}", &destination_folder, err);
-                    },
-                }
-            },
-            Err(err) => {
-                error!("Can not create directory: {}. {}", &destination_folder, err);
-            },
-        }
+    pub async fn replicate_folder(&self, path: &PathBuf) {
+        generate_folder(&self.origin, &self.destination, path, false).await;
     }
 
     pub async fn initial_replication(&self) {
+        debug!("=============================");
         if let Ok(true) = tokio::fs::try_exists(&self.destination).await{
             match tokio::fs::remove_dir_all(&self.destination).await {
                 Ok(()) => debug!("Delete main folder"),
                 Err(err) => error!("Can not delete main folder: {}", err),
             }
         }
-        self.replicate_folder(&PathBuf::from(&self.origin)).await;
+        match tokio::fs::create_dir_all(&self.destination).await {
+            Ok(()) => debug!("Created destination folder {:?}", self.destination),
+            Err(err) => error!("Can not create destination folder {:?}: {}", self.destination, err),
+        }
+
+        generate_folder(&self.origin, &self.destination,&self.origin, true).await;
+        debug!("=============================");
     }
 
 
@@ -113,7 +55,7 @@ impl Replicator {
                     CreateKind::File => {
                         for path in event.paths.iter() {
                             //self.replicate_file(path).await;
-                            debug!("Replicating {:?}. From {} to {}", path, self.origin, self.destination);
+                            debug!("Replicating {:?}. From {:?} to {:?}", path, self.origin, self.destination);
                         }
                     },
                     CreateKind::Folder => {
@@ -125,22 +67,22 @@ impl Replicator {
                 }
             }
             EventKind::Modify(modify) => {
-                debug!("Replicating {} to {}", self.origin, self.destination);
+                debug!("Replicating {:?} to {:?}", self.origin, self.destination);
                 debug!("Modify: {:?}", modify);
             }
             EventKind::Remove(delete) => {
                 match delete {
                     RemoveKind::File => {
                         for path in event.paths.iter() {
-                            println!("Deleting file: {}", self.get_absolute_destination(path.to_str().unwrap()));
-                            let destination = self.get_absolute_destination(path.to_str().unwrap());
+                            let destination = self.get_absolute_destination(path);
+                            debug!("Deleting file: {:?}", &destination);
                             fs::remove_file(&destination).await?
                         }
                     },
                     RemoveKind::Folder => {
                         for path in event.paths.iter() {
-                            println!("Deleting folder: {}", self.get_absolute_destination(path.to_str().unwrap()));
-                            let destination = self.get_absolute_destination(path.to_str().unwrap());
+                            let destination = self.get_absolute_destination(path);
+                            debug!("Deleting folder: {:?}", &destination);
                             fs::remove_dir_all(&destination).await?
                         }
                     },
@@ -151,10 +93,46 @@ impl Replicator {
         }
     Ok(())
     }
+
+    fn get_absolute_destination(&self, path: &Path) -> PathBuf {
+        let relative = path.strip_prefix(&self.origin).unwrap();
+        self.destination.join(relative)
+    }
 }
 
 impl Display for Replicator {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "Replicator from {} to {}", self.origin, self.destination)
+        write!(f, "Replicator from {:?} to {:?}", self.origin, self.destination)
+    }
+}
+
+#[async_recursion]
+pub async fn generate_folder(main_source: &PathBuf, main_destination: &PathBuf, path: &PathBuf, recursive: bool) {
+    debug!("Source folder: {:?}", path);
+    let page_route = path.strip_prefix(main_source).unwrap().to_path_buf();
+    debug!("Route: {:?}", page_route);
+    let destination_folder = main_destination.join(&page_route);
+    debug!("Destination folder: {:?}", &destination_folder);
+    let mut directories = Vec::new();
+    let mut pages = Vec::new();
+    if let Ok(mut entries) = fs::read_dir(path).await{
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            if entry.file_type().await.unwrap().is_dir() {
+                directories.push(entry.path());
+                if recursive {
+                    generate_folder(main_source, main_destination, &entry.path(), recursive).await;
+                }
+            }else{
+                debug!("File: {:?}", entry.path());
+                let wraped_page = Page::read(&page_route, &entry.path().to_path_buf()).await;
+                if wraped_page.is_some() {
+                    let page = wraped_page.unwrap();
+                    page.generate(&destination_folder.parent().unwrap().to_path_buf()).await;
+                    pages.push(page);
+                }
+            }
+        }
+        let index = Index::read(&page_route, path, &destination_folder, pages).await.unwrap();
+        index.generate(&destination_folder).await;
     }
 }

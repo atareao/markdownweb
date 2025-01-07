@@ -23,11 +23,10 @@ mod publishers;
 
 pub use metadata::Metadata;
 pub use page::Page;
-pub use pageerror::PageError;
+pub use pageerror::create_page_error;
 pub use index::Index;
 pub use config::Config;
 pub use site::Site;
-pub use publishers::Publisher;
 pub use publishers::Mastodon;
 pub use publishers::Telegram;
 

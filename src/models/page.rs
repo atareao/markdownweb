@@ -4,64 +4,100 @@ use tracing::{
     error,
     debug
 };
-use std::error::Error;
 use minijinja::context;
+use std::path::PathBuf;
 use super::{
     ENV,
     Metadata,
-    PageError,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Page{
-    pub route: String,
+    pub route: PathBuf,
     pub metadata: Metadata,
     pub content: String,
 }
 
 impl Page {
-    pub async fn read(route: &str, source: &str) -> Result<Self, Box<dyn Error>> {
-        let data = tokio::fs::read_to_string(&source).await?;
-        debug!("Data: {}", data);
-        let matter = Matter::<YAML>::new();
-        let result = matter.parse(&data);
-        debug!("Result: {:?}", result);
-        let mut metadata: Metadata = result
-            .data
-            .ok_or("Can not read metadata")?
-            .deserialize()?;
-        metadata.init();
-        metadata.validate()?;
-        Ok(Self {
-            route: route.to_string(),
-            metadata,
-            content: result.content,
-        })
+    pub async fn read(route: &PathBuf, source: &PathBuf) -> Option<Self> {
+        if let Ok(data) = tokio::fs::read_to_string(&source).await {
+            let matter = Matter::<YAML>::new();
+            let result = matter.parse(&data);
+            if let Ok(serialized_data) = result.data.ok_or("Can not read metadata") {
+                if let Ok(mut metadata) = serialized_data.deserialize::<Metadata>(){
+                    metadata.init();
+                    if let Ok(()) = metadata.validate(){
+                        return Some(Self {
+                            route: route.to_path_buf(),
+                            metadata,
+                            content: result.content,
+                        });
+                    } else {
+                        error!("Can not validate metadata for {:?}", source);
+                    }
+                } else {
+                    error!("Can not deserialize metadata for {:?}", source);
+                }
+            } else {
+                error!("Can not read metadata for {:?}", source);
+            }
+        }else {
+            error!("Can not read {:?}", source);
+        }
+        None
     }
 
-    pub async fn generate(&self, parent: &str) -> Result<(), Box<dyn Error>> {
-        debug!("Generate {}/{}/index.html", parent, self.metadata.slug);
-        let destination_folder = format!("{}/{}", parent, self.metadata.slug);
-        let destination_file = format!("{}/index.html", destination_folder);
-        if tokio::fs::try_exists(&destination_folder).await? {
-            error!("Folder exists. There are documents with same slug {}", self.metadata.slug);
-            return Err(Box::new(PageError::new("Folder exists. There are documents with same slug")));
+    pub async fn generate(&self, parent: &PathBuf) {
+        debug!("--- Start generation {:?} - {:?} - {}", &parent, &self.route, &self.metadata.slug);
+        debug!("Parent: {:?}", parent);
+        debug!("Route: {:?}", self.route);
+        debug!("Slug: {:?}", self.metadata.slug);
+        let destination_folder = PathBuf::new()
+            .join(parent)
+            .join(&self.route)
+            .join(&self.metadata.slug);
+        debug!("Destination folder: {:?}", &destination_folder);
+        let destination_file = PathBuf::new()
+            .join(&destination_folder)
+            .join("index.html");
+        debug!("Destination file: {:?}", &destination_file);
+        match tokio::fs::create_dir_all(&destination_folder).await {
+            Ok(_) => {
+                debug!("Created folder: {:?}", &destination_folder);
+                if let Ok(true) = tokio::fs::try_exists(&destination_file).await {
+                    debug!("File exists. Overwriting {:?}", &destination_file);
+                    if let Ok(()) = tokio::fs::remove_file(&destination_file).await{
+                        debug!("Removed file: {:?}", &destination_file);
+                    } else {
+                        error!("Can not remove file: {:?}", &destination_file);
+                    }
+                }
+                let ctx = context!(
+                    title => self.metadata.title,
+                    date => self.metadata.date,
+                    excerpt => self.metadata.excerpt,
+                    vars => self.metadata.vars,
+                    tags => self.metadata.tags,
+                    content => self.content,
+                );
+                if let Ok(template) = ENV.get_template(&self.metadata.template) {
+                    if let Ok(rendered) = template.render(&ctx) {
+                        if let Ok(()) = tokio::fs::write(&destination_file, rendered).await {
+                            debug!("Save {:?}", &destination_file);
+                        }else{
+                            debug!("Can not save {:?}", &destination_file);
+                        }
+                    } else {
+                        debug!("Can not render {:?}", &destination_file);
+                    }
+                }else{
+                    debug!("Can not get template {:?}", &self.metadata.template);
+                }
+            },
+            Err(err) => {
+                error!("Can not create folder: {:?}. {}", &destination_folder, err);
+            }
         }
-        if tokio::fs::try_exists(&destination_file).await? {
-            debug!("File exists. Overwriting {}", &destination_file);
-            tokio::fs::remove_file(&destination_file).await?;
-        }
-        let ctx = context!(
-            title => self.metadata.title,
-            date => self.metadata.date,
-            excerpt => self.metadata.excerpt,
-            vars => self.metadata.vars,
-            tags => self.metadata.tags,
-            content => self.content,
-        );
-        let template = ENV.get_template(&self.metadata.template)?;
-        let rendered = template.render(&ctx)?;
-        tokio::fs::write(&destination_file, rendered).await?;
-        Ok(())
+        debug!("--- End generation {:?} - {:?} - {}", &parent, &self.route, &self.metadata.slug);
     }
 }
