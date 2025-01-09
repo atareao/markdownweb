@@ -1,6 +1,6 @@
-assets: /data/rust/markdownweb/assets/
-source: /data/rust/markdownweb/content/
-destination: /data/rust/markdownweb/public/
+assets: /app/assets/
+source: /app/content/
+destination: /app/public/
 site:
   url: "/"
   language: es
