@@ -1,27 +1,29 @@
-{% extends "default.html" -%}
-{% block title -%}{{ title }}{% endblock title -%}
+{% extends "partials/base.html" -%}
 {% block content -%}
-{% if content -%}
-<div class="entry">
-    {{ content | safe}}
-</div>
-{% endif -%}
-<div class="posts">
-    {% for apage in pages -%}
-    <article class="post">
-        <h1><a href="{{ [site.url, apage.route, apage.metadata.slug] | path }}">{{ apage.title }}</a></h1>
-        <h5><div class="post-meta">{{ apage.metadata.date | date(format="%d/%m/%Y") }}</div></h5>
-        <div class="entry">
-            {{ apage.metadata.excerpt | safe}}
+<article>
+    <div class="is-centered">
+        <div class="title subtitle heading is-6">
+            <div id="home-box">
+                <div class="avatar-container">
+                    <img src="{{ site.avatar }}" class="author-avatar">
+                </div>
+                <h1 id="home-title" class="title is-1 ">{{ site.title }}</h1>
+                <div class="description column content typewriter-effect">
+                    <div class="text" id="typewriter-text"> {{ page.content }}</div>
+                </div>
+                <script>
+                    const typeWriter = document.getElementById('typewriter-text');
+                    typeWriter.style.setProperty('--characters', typeWriter.innerHTML.length);
+                </script>
+                <div class="social-icon">
+                </div>
+            </div>
         </div>
-        <ul>
-        <li>site.url: {{ site.url }}</li>
-        <li>apage.route: {{ apage.route }}</li>
-        <li>apage.metadata.slug: {{ apage.metadata.slug }}</li>
-        <li>path: {{ [site.url, apage.route, apage.metadata.slug] | path }}</li>
-        </ul>
-        <a href="{{ [site.url, apage.route, apage.metadata.slug] | path }}" class="read-more">Sigue leyendo...</a>
-    </article>
+    </div>
+</article>
+<div class="summary">
+    {% for apage in pages -%}
+    {% include "partials/summary.html" -%}
     {% endfor -%}
 </div>
 {% endblock content -%}

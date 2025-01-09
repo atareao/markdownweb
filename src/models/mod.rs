@@ -14,7 +14,6 @@ use minijinja::{
 use once_cell::sync::Lazy;
 use chrono::{DateTime, FixedOffset};
 use chrono_tz::Tz;
-use tracing::debug;
 
 mod metadata;
 mod page;

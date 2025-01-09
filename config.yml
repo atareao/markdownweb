@@ -3,7 +3,7 @@ source: /app/content/
 destination: /app/public/
 site:
   url: "/"
-  language: es
+  language: es-es
   language_direction: rtl
   theme: dark
   title: Diario de un crustáceo

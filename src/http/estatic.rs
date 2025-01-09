@@ -43,11 +43,11 @@ async fn get_index(State(config): State<Config>, Path(path): Path<String>) -> Ht
             },
             Err(e) => {
                 error!("Error: {}", e);
-                create_page_error(500, &e.to_string(), &config)
+                create_page_error(500, &e.to_string(), &config.site)
             },
         }
     }else{
         error!("Error. directory {:?} not exists", &index_path);
-        create_page_error(404, "Page not found", &config)
+        create_page_error(404, "Page not found", &config.site)
     }
 }
