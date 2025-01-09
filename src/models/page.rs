@@ -4,6 +4,7 @@ use minijinja::context;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tracing::{debug, error};
+use comrak::{markdown_to_html, Options};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Page {
@@ -24,7 +25,7 @@ impl Page {
                         return Some(Self {
                             route: route.to_path_buf(),
                             metadata,
-                            content: result.content,
+                            content: markdown_to_html(&result.content, &Options::default()),
                         });
                     } else {
                         error!("Can not validate metadata for {:?}", source);

@@ -1,11 +1,22 @@
 <footer class="footer">
-    <div class="content has-text-centered">
-    <span>&copy; {{ now() | date(format="%Y") }} <a href="{{ site.url }}">{{ site.title }}</a></span>
-    <span>
-        Powered by
-        <a href="https://github.com/atareao/markdownweb/" target="_blank">MarkdownWeb</a> &
-        <a href="https://github.com/hotjuicew/hugo-JuiceBar" target="_blank">JuiceBar</a>
-    </span>
+    <span class="footer_item"></span>
+    &nbsp;
+    <div class="footer_social-icons">
+        {% for social in site.socials -%}
+        <a href="{{ social.url }}" target="_blank" rel="noopener noreferrer me"
+            title="{{ social.name }}">
+            {% with icon_name=(social.name | trim | lower) -%}
+                {% include "svgs/svgs.html" -%}
+            {% endwith -%}
+        </a>
+        {% endfor -%}
     </div>
-  </footer>
-
+    <small class="footer_copyright">
+        &copy; {{ now() | date(format="%Y") }} <a href="{{ site.url }}">{{ site.title }}</a></span>
+    </small>
+</footer>
+<a href="#" title="Go top" id="totop">
+    {% with height=48, width=48 -%}
+        {% include "svgs/arrowUp.svg" -%}
+    {% endwith -%}
+</a>

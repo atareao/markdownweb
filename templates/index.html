@@ -1,29 +1,13 @@
 {% extends "partials/base.html" -%}
-{% block content -%}
-<article>
-    <div class="is-centered">
-        <div class="title subtitle heading is-6">
-            <div id="home-box">
-                <div class="avatar-container">
-                    <img src="{{ site.avatar }}" class="author-avatar">
-                </div>
-                <h1 id="home-title" class="title is-1 ">{{ site.title }}</h1>
-                <div class="description column content typewriter-effect">
-                    <div class="text" id="typewriter-text"> {{ page.content }}</div>
-                </div>
-                <script>
-                    const typeWriter = document.getElementById('typewriter-text');
-                    typeWriter.style.setProperty('--characters', typeWriter.innerHTML.length);
-                </script>
-                <div class="social-icon">
-                </div>
-            </div>
-        </div>
-    </div>
-</article>
-<div class="summary">
-    {% for apage in pages -%}
-    {% include "partials/summary.html" -%}
-    {% endfor -%}
+{% block main -%}
+<div class="wrapper list-page">
+    <header class="header">
+        <h1 class="header-title center">{{ page.metadata.title }}</h1>
+    </header>
+    <main class="page-content" aria-label="Content">
+        {% for apage in pages -%}
+        {% include "partials/summary.html" -%}
+        {% endfor -%}
+    </main>
 </div>
-{% endblock content -%}
+{% endblock main -%}

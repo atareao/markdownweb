@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use std::error::Error;
 use minijinja::context;
+use comrak::{markdown_to_html, Options};
 use super::{
     ENV,
     Metadata,
@@ -47,8 +48,7 @@ impl Index {
                 index: Page {
                     route: route.to_path_buf(),
                     metadata,
-                    content: result.content,
-
+                    content: markdown_to_html(&result.content, &Options::default()),
                 },
                 pages,
             })

@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="{{ site.language }}">
     {% include "partials/head.html" -%}
-    <body>
+    <body data-theme="light" class="notransition">
+        <script async src="/assets/js/theme.js"></script>
         {% include "partials/header.html" -%}
-        <main>
-        {% block content %}{% endblock content %}
-        </main>
+        {% block main -%}{% endblock main -%}
         {% include "partials/footer.html" -%}
+        <script async src="/assets/js/main.js"></script>
+        <script async src="/assets/js/goToTop.js"></script>
     </body>
 </html>
-
-
-

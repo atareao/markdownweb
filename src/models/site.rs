@@ -15,6 +15,13 @@ pub struct Site{
     pub email: String,
     pub telegram: Option<Telegram>,
     pub mastodon: Option<Mastodon>,
+    pub socials: Option<Vec<Social>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Social{
+    pub name: String,
+    pub url: String,
 }
 
 impl Display for Site{

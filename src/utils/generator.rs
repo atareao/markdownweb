@@ -5,6 +5,7 @@ use tracing::{error, debug};
 use tokio::fs;
 use std::error::Error;
 use std::path::{Path, PathBuf};
+use std::ffi::OsStr;
 use super::super::models::Config;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -124,7 +125,9 @@ pub async fn generate_folder(site: &Site, main_source: &PathBuf, main_destinatio
                 if recursive {
                     generate_folder(site, main_source, main_destination, &entry.path(), recursive).await;
                 }
-            }else if entry.file_type().await.unwrap().is_file() && entry.path().extension().unwrap() == "md"{
+            }else if entry.file_type().await.unwrap().is_file() &&
+                    entry.path().extension().unwrap() == "md" &&
+                    entry.path().file_name() != Some(OsStr::new("index.md")){
                 debug!("File: {:?}", entry.path());
                 let wraped_page = Page::read(&page_route, &entry.path().to_path_buf()).await;
                 if wraped_page.is_some() {

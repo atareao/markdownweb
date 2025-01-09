@@ -1,39 +1,18 @@
 {% extends "partials/base.html" -%}
-{% block content -%}
-<div class="single-container">
-    <div class="archive">
-        <h1 class="title is-1">{{ page.title }}</h1>
-        <div class="title subtitle heading is-6">
-            <div class="author-info columns is-vcentered">
-                <div class="column">
-                    <div class="columns is-vcentered is-mobile">
-                        <div class="column is-narrow">
-                            <img src="{{ site.avatar }}" class="author-image">
-                        </div>
-                        {{ end }}
-                        <div class="column">
-                            <p>{{ site.author }}</p>
-                            <p><time>{{ page.date }}</time>
-                            </p>
-                        </div>
-                    </div>
+{% block main -%}
+<div class="wrapper post">
+    <main class="page-content" aria-label="Content">
+        <article>
+            <header class="header">
+                <h1 class="header-title">{{ page.metadata.title }}</h1>
+                <div class="post-meta">
+                    <time datetime="{{ page.metadata.date }}" itemprop="datePublished"> {{ page.metadata.date }} </time>
                 </div>
+            </header>
+            <div class="page-content">
+                {{ page.content | safe }}
             </div>
-        </div>
-        <div class="content article-content">
-            {{ page.content }}
-        </div>
-    </div>
-    <a href="#" id="scrollToTopButton">
-        <svg t="1686753152588" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
-            p-id="3988" width="48" height="48">
-            <path
-                d="M518.5 360.3c-3.2-4.4-9.7-4.4-12.9 0l-178 246c-3.8 5.3 0 12.7 6.5 12.7H381c10.2 0 19.9-4.9 25.9-13.2L512 460.4l105.2 145.4c6 8.3 15.6 13.2 25.9 13.2H690c6.5 0 10.3-7.4 6.5-12.7l-178-246z"
-                p-id="3989" fill="#363636"></path>
-            <path
-                d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"
-                p-id="3990" fill="#363636"></path>
-        </svg>
-    </a>
+        </article>
+    </main>
 </div>
-{% endblock content -%}
+{% endblock main -%}

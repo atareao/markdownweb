@@ -1,2 +1,35 @@
-                <a href="/" class="navbar-item">Blog</a>
+<div class="navbar" role="navigation">
+    <nav class="menu" aria-label="Main Navigation">
+        <a href="/" class="logo">
+            {% with width=25, height=25 -%}
+                {% include "svgs/home.svg" -%}
+            {% endwith -%}
+        </a>
+        <input type="checkbox" id="menu-trigger" class="menu-trigger" />
+        <label for="menu-trigger">
+            <span class="menu-icon">
+            {% with with=25, height=25 -%}
+                {% include "svgs/menu.svg" -%}
+            {% endwith -%}
+            </span>
+        </label>
+
+        <div class="trigger">
+            <ul class="trigger-container">
+                {% include "partials/navbar_items.html" -%}
+                <li class="menu-separator">
+                    <span>|</span>
+                </li>
+            </ul>
+            <a id="mode" href="#">
+            {% with with=21, height=21, class="mode-sunny", title="LIGHT" -%}
+                {% include "svgs/sun.svg" -%}
+            {% endwith -%}
+            {% with with=21, height=21, class="mode-moon", title="DARK" -%}
+                {% include "svgs/sun.svg" -%}
+            {% endwith -%}
+            </a>
+        </div>
+    </nav>
+</div>
 
