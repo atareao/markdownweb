@@ -2,9 +2,12 @@ assets: /data/rust/markdownweb/assets/
 source: /data/rust/markdownweb/content/
 destination: /data/rust/markdownweb/public/
 site:
-  url: https://papafriki.es
-  title: Batallitas del día a día de un Papá Friki
-  description: Batallitas del día a día de un Papá Friki
-  author: Alberto
-  avatar: https://atareao.es/avatar.png
-  email: papafriki@papafriki.es
+  url: "/"
+  language: es
+  language_direction: rtl
+  theme: dark
+  title: Diario de un crustáceo
+  description: Historias, anécdotas y aprendizajes de un desarrollador de Rust
+  author: Lorenzo Carbonell <a.k.a atareao>
+  avatar: /assets/images/
+  email: correo@servidorlinux.es

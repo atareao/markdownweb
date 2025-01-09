@@ -12,6 +12,7 @@ use super::{
     ENV,
     Metadata,
     Page,
+    Site,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -77,7 +78,7 @@ impl Index {
         }
     }
 
-    pub async fn generate(&self, parent: &PathBuf) {
+    pub async fn generate(&self, site: &Site, parent: &PathBuf) {
         debug!("--- Start generation {:?} - {:?}", &parent, &self.index.route);
         debug!("Parent: {:?}", parent);
         debug!("Generate {:?}index.html", parent);
@@ -99,7 +100,7 @@ impl Index {
         }
         debug!("Pages: {:?}", self.pages);
         let ctx = context!(
-            config => self.config,
+            site => site,
             page => self.index,
             pages => self.pages,
         );

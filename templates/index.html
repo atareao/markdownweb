@@ -1,16 +1,27 @@
-{% extends "default.html" %}
-{% block title %}{{ title }}{% endblock title %}
-{% block content %}
+{% extends "default.html" -%}
+{% block title -%}{{ title }}{% endblock title -%}
+{% block content -%}
+{% if content -%}
+<div class="entry">
+    {{ content | safe}}
+</div>
+{% endif -%}
 <div class="posts">
-    {% for apage in pages %}
+    {% for apage in pages -%}
     <article class="post">
-        <h1><a href="{{ url | safe }}/{{ apage.route }}/{{ apage.metadata.slug }}">{{ apage.metadata.title }}</a></h1>
+        <h1><a href="{{ [site.url, apage.route, apage.metadata.slug] | path }}">{{ apage.title }}</a></h1>
         <h5><div class="post-meta">{{ apage.metadata.date | date(format="%d/%m/%Y") }}</div></h5>
         <div class="entry">
             {{ apage.metadata.excerpt | safe}}
         </div>
-        <a href="{{ url | safe }}/{{ apage.route }}/{{ apage.metadata.slug }}" class="read-more">Sigue leyendo...</a>
+        <ul>
+        <li>site.url: {{ site.url }}</li>
+        <li>apage.route: {{ apage.route }}</li>
+        <li>apage.metadata.slug: {{ apage.metadata.slug }}</li>
+        <li>path: {{ [site.url, apage.route, apage.metadata.slug] | path }}</li>
+        </ul>
+        <a href="{{ [site.url, apage.route, apage.metadata.slug] | path }}" class="read-more">Sigue leyendo...</a>
     </article>
-    {% endfor %}
+    {% endfor -%}
 </div>
-{% endblock content %}
+{% endblock content -%}

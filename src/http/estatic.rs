@@ -24,6 +24,7 @@ pub async fn router() -> Router {
 }
 
 async fn get_root(state: State<Config>) -> Html<String>{
+    debug!("=== root ===");
     get_index(state, Path("".to_string())).await
 }
 async fn get_index(State(config): State<Config>, Path(path): Path<String>) -> Html<String>{
@@ -38,7 +39,6 @@ async fn get_index(State(config): State<Config>, Path(path): Path<String>) -> Ht
     if let Ok(true) = tokio::fs::try_exists(&index_path).await {
         match tokio::fs::read_to_string(&index_path).await{
             Ok(content) => {
-                debug!("Content: {}", content);
                 Html(content)
             },
             Err(e) => {

@@ -13,7 +13,7 @@ use std::sync::mpsc;
 use std::str::FromStr;
 use std::env::var;
 use tracing::{debug, error};
-use utils::Replicator;
+use utils::Generator;
 use models::Config;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -30,7 +30,7 @@ async fn main(){
     let config = Arc::new(Mutex::new(Config::read_configuration().await));
 
     let binding = Arc::clone(&config);
-    let replicator = Replicator::new(&binding).await;
+    let replicator = Generator::new(&binding).await;
     replicator.initial_replication().await;
 
 
@@ -61,7 +61,7 @@ async fn monitor(mutex_config: Arc<Mutex<Config>>){
     debug!("Starting monitor");
     let config = mutex_config.lock().await;
     debug!("Config: {:?}", config);
-    let replicator = Replicator::new(&mutex_config).await;
+    let replicator = Generator::new(&mutex_config).await;
     //replicator.initial_replication().await;
     let (tx, rx) = mpsc::channel::<Result<Event>>();
 

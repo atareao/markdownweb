@@ -5,6 +5,9 @@ use std::fmt::{self, Display};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Site{
     pub url: String,
+    pub language: String,
+    pub language_direction: String,
+    pub theme: String,
     pub title: String,
     pub description: String,
     pub author: String,

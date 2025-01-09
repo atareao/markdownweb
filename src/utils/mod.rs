@@ -1,3 +1,3 @@
-mod replicator;
+mod generator;
 
-pub use replicator::Replicator;
+pub use generator::Generator;

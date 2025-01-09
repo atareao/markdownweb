@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use super::{
     ENV,
     Metadata,
+    Site,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -47,14 +48,12 @@ impl Page {
         None
     }
 
-    pub async fn generate(&self, parent: &PathBuf) {
-        debug!("--- Start generation {:?} - {:?} - {}", &parent, &self.route, &self.metadata.slug);
+    pub async fn generate(&self, site: &Site, parent: &PathBuf) {
+        debug!("--- Start generation {:?} - {}", &parent, &self.metadata.slug);
         debug!("Parent: {:?}", parent);
-        debug!("Route: {:?}", self.route);
         debug!("Slug: {:?}", self.metadata.slug);
         let destination_folder = PathBuf::new()
             .join(parent)
-            .join(&self.route)
             .join(&self.metadata.slug);
         debug!("Destination folder: {:?}", &destination_folder);
         let destination_file = PathBuf::new()
@@ -73,12 +72,8 @@ impl Page {
                     }
                 }
                 let ctx = context!(
-                    title => self.metadata.title,
-                    date => self.metadata.date,
-                    excerpt => self.metadata.excerpt,
-                    vars => self.metadata.vars,
-                    tags => self.metadata.tags,
-                    content => self.content,
+                    site => site,
+                    page => self,
                 );
                 if let Ok(template) = ENV.get_template(&self.metadata.template) {
                     if let Ok(rendered) = template.render(&ctx) {
@@ -98,6 +93,6 @@ impl Page {
                 error!("Can not create folder: {:?}. {}", &destination_folder, err);
             }
         }
-        debug!("--- End generation {:?} - {:?} - {}", &parent, &self.route, &self.metadata.slug);
+        debug!("--- End generation {:?} - {}", &parent, &self.metadata.slug);
     }
 }

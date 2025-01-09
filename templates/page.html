@@ -1,13 +1,13 @@
-{% extends "default.html" %}
-{% block title %}{{ title }}{% endblock title %}
-{% block content %}
+{% extends "default.html" -%}
+{% block title %}{{ page.metadata.title }}{% endblock title -%}
+{% block content -%}
 <article class="page">
 
-  <h1>{{ title }}</h1>
+  <h1>{{ page.metadata.title }}</h1>
 
   <div class="entry">
-    {{ content | safe}}
+    {{ page.content | safe}}
   </div>
-  {% include "disqus.html" %}
+  {% include "disqus.html" -%}
 </article>
-{% endblock content %}
+{% endblock content -%}

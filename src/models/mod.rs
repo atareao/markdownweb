@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use minijinja::{
     Environment,
     path_loader,
@@ -12,6 +14,7 @@ use minijinja::{
 use once_cell::sync::Lazy;
 use chrono::{DateTime, FixedOffset};
 use chrono_tz::Tz;
+use tracing::debug;
 
 mod metadata;
 mod page;
@@ -37,6 +40,7 @@ pub static ENV: Lazy<Environment<'static>> = Lazy::new(|| {
     env.add_filter("striptags", striptags);
     env.add_filter("date", date);
     env.add_filter("truncate", truncate);
+    env.add_filter("path", path);
     env.add_function("now", now);
     env
 });
@@ -62,6 +66,29 @@ fn striptags(value: String) -> String {
     }
     data
 }
+
+pub fn path(val: Value) -> Result<String, Error> {
+        if val.is_undefined() || val.is_none() {
+            return Ok(String::new());
+        }
+
+        let iter = val.try_iter().map_err(|err| {
+            Error::new(
+                ErrorKind::InvalidOperation,
+                format!("cannot join value of type {}", val.kind()),
+            )
+            .with_source(err)
+        })?;
+
+        let mut path = PathBuf::new();
+        for item in iter {
+            if let Some(s) = item.as_str() {
+                debug!("Adding {:?} to path {:?}", s, path);
+                path.push(s)
+            }
+        }
+        Ok(path.to_string_lossy().to_string())
+    }
 
 fn value_to_chrono_datetime(
     value: Value,
