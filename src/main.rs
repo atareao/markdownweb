@@ -21,7 +21,7 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main(){
-    let log_level: String = var("LOG_LEVEL").unwrap_or("debug".to_string());
+    let log_level: String = var("RUST_LOG").unwrap_or("debug".to_string());
     tracing_subscriber::registry()
         .with(EnvFilter::from_str(&log_level).unwrap())
         .with(tracing_subscriber::fmt::layer())
@@ -53,7 +53,6 @@ async fn server(){
                 err = next_err;
             }
         },
-
     }
 }
 

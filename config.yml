@@ -9,5 +9,5 @@ site:
   title: Diario de un crustáceo
   description: Historias, anécdotas y aprendizajes de un desarrollador de Rust
   author: Lorenzo Carbonell <a.k.a atareao>
-  avatar: /assets/images/
+  avatar: /assets/images/avatar.jpg
   email: correo@servidorlinux.es

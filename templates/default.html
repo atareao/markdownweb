@@ -10,13 +10,14 @@
         <title>{% block title %}{% endblock title %} – {{ page_title }}</title>
         {% include "meta.html" -%}
         <link rel="stylesheet" type="text/css" href="/assets/style.css" />
+        <link rel="shortcut icon" href="/assets/images/favicon.ico" type="image/x-icon">
         {% endblock head -%}
     </head>
   <body>
     <div class="wrapper-masthead">
       <div class="container">
         <header class="masthead clearfix">
-          <a href="{{ site.url | safe }}/" class="site-avatar"><img src="{{ avatar | safe }}" /></a>
+          <a href="{{ site.url | safe }}/" class="site-avatar"><img src="{{ site.avatar }}" /></a>
           <div class="site-info">
             <h1 class="site-name"><a href="{{ site.url | safe }}/">{{ title }}</a></h1>
             <p class="description">{{ site.description }}</p>
@@ -28,6 +29,7 @@
       </div>
     </div>
     <div id="main" role="main" class="container">
+        <p>{{site.avatar}}</p>
         {% block content %}{% endblock content %}
     </div>
     <div class="wrapper-footer">

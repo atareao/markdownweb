@@ -83,7 +83,6 @@ pub fn path(val: Value) -> Result<String, Error> {
         let mut path = PathBuf::new();
         for item in iter {
             if let Some(s) = item.as_str() {
-                debug!("Adding {:?} to path {:?}", s, path);
                 path.push(s)
             }
         }

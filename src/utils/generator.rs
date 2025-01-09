@@ -124,7 +124,7 @@ pub async fn generate_folder(site: &Site, main_source: &PathBuf, main_destinatio
                 if recursive {
                     generate_folder(site, main_source, main_destination, &entry.path(), recursive).await;
                 }
-            }else{
+            }else if entry.file_type().await.unwrap().is_file() && entry.path().extension().unwrap() == "md"{
                 debug!("File: {:?}", entry.path());
                 let wraped_page = Page::read(&page_route, &entry.path().to_path_buf()).await;
                 if wraped_page.is_some() {

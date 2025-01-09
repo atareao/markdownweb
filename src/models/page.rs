@@ -5,7 +5,7 @@ use tracing::{
     debug
 };
 use minijinja::context;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use super::{
     ENV,
     Metadata,
@@ -20,7 +20,7 @@ pub struct Page{
 }
 
 impl Page {
-    pub async fn read(route: &PathBuf, source: &PathBuf) -> Option<Self> {
+    pub async fn read(route: &Path, source: &PathBuf) -> Option<Self> {
         if let Ok(data) = tokio::fs::read_to_string(&source).await {
             let matter = Matter::<YAML>::new();
             let result = matter.parse(&data);

@@ -4,7 +4,13 @@ services:
     container_name: markdownweb
     init: true
     restart: unless-stopped
+    environment:
+      RUST_LOG: debug
+      PORT: 8080
     volumes:
       - ./assets:/app/assets
       - ./content:/app/content
+      - ./templates/:/app/templates
       - ./config.yml:/app/config.yml
+    ports:
+      - 8080:8080
