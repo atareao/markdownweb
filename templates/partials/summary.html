@@ -1,0 +1,17 @@
+<article class="post">
+    <div class="single-container column is-centered">
+        <div class="archive" id="post-container">
+            <header class="post-header">
+                <h1 class="post-title hover-underline-animation"><a class="post-link" href="{{ [site.url, apage.route, apage.metadata.slug] | path }}">{{ apage.metadata.title }}</a></h1>
+            </header>
+            <div class="post-content">
+                <div class="excerpt post-summary">
+                    {{ apage.metadata.excerpt }}
+                </div>
+                <div class="post-time-container">
+                    <span class="post-time">{{ apage.metadata.date | date(format="%d/%m/%Y") }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</article>

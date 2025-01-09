@@ -1,0 +1,99 @@
+<header>
+{% block header -%}
+<nav class="navbar is-light" role="navigation">
+    <div class="container">
+        <div class="navbar-brand">
+            <a href="/" title="home" class="navbar-item">
+                <span class="logo">
+                    <h1>{{ site.title }}</h1>
+                </span>
+            </a>
+
+            <!-- sun icon -->
+            <a id="theme-toggle" class="theme-toggle" href="#">
+                <img src="/assets/svg/sun.svg" alt="sun icon" class="theme-icon" />
+            </a>
+
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div class="navbar-menu">
+            <div class="navbar-start">
+                {%- include "partials/navbar.html" -%}
+            </div>
+
+        </div>
+        <div class="search">
+            <div id="fastSearch">
+                <input id="searchInput" tabindex="0" placeholder="Search..">
+                <ul id="searchResults">
+
+                </ul>
+            </div>
+            <a id="search-btn" style="display: inline-block;" href="# ">
+                <div class="icon-search"><svg class="search-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+            </a>
+        </div>
+
+        <script src="/assets/js/fuse.min.js"></script> <!-- download and copy over fuse.min.js file from fusejs.io -->
+        <script src="/assets/js/fastsearch.js"></script>
+
+    </div>
+</nav>
+
+<script>
+    //hamburger icon on a mobile device.
+    document.addEventListener('DOMContentLoaded', function() {
+        var burger = document.querySelector('.navbar-burger');
+        burger.addEventListener('click', function() {
+            burger.classList.toggle('is-active');
+            document.querySelector('.navbar-menu').classList.toggle('is-active');
+        });
+    });
+
+    // theme color switch
+    function setTheme(theme) {
+        let body = document.body;
+        let themeIcon = document.querySelector(".theme-icon");
+        if (theme === "dark") {
+            body.classList.add("dark-mode");
+            themeIcon.src = "/assets/svg/moon.svg";
+            themeIcon.alt = "moon icon";
+        } else {
+            body.classList.remove("dark-mode");
+            themeIcon.src = "/assets/svg/sun.svg";
+            themeIcon.alt = "sun icon";
+        }
+        // Save the user-selected theme mode to local storage.
+        localStorage.setItem("theme", theme);
+    }
+
+    // Retrieve the user-selected theme mode from local storage
+    let theme = localStorage.getItem("theme") || "light";
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (isDarkMode) {
+        // Site is in dark mode
+        setTheme('dark');
+
+    } else {
+        // Site is in light mode
+        setTheme('light');
+    }
+    setTheme(theme);
+
+    // Toggle theme when sun icon is clicked
+    document.getElementById("theme-toggle").addEventListener("click", function() {
+        if (theme === "light") {
+            theme = "dark";
+        } else {
+            theme = "light";
+        }
+        setTheme(theme);
+    });
+</script>
+{% endblock header -%}
+</header>
