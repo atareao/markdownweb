@@ -1,0 +1,25 @@
+    <script defer type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "Article",
+        "headline": {{ page.metadata.title }},
+        "author": {
+        "@type": "Person",
+        "name": "{{ site.author }}"
+        },
+        "datePublished": "{{ dateFormat "2006-01-02" .Date }}",
+        "description": {{ page.metadata.description }},
+        "wordCount": {{ .WordCount }},
+        "mainEntityOfPage": "True",
+        "dateModified": "{{ dateFormat "2006-01-02" .Lastmod }}",
+        "image": {
+        "@type": "imageObject",
+        "url": "{{ with .Params.image }}{{ . | absURL }}{{ end }}"
+        },
+        "publisher": {
+        "@type": "Organization",
+        "name": "{{ site.title }}"
+        }
+    }
+    </script>
+
