@@ -1,0 +1,10 @@
+services:
+  markdownweb:
+    image: atareao/markdownweb:latest
+    container_name: markdownweb
+    init: true
+    restart: unless-stopped
+    volumes:
+      ./assets:/app/assets
+      ./content:/app/content
+      ./config.yml:/app/content/config.yml
